@@ -56,5 +56,5 @@ wss.on('connection', function connection (ws) {
 
 const port = 8099
 server.listen(port, '0.0.0.0', () => {
-  console.log(`http://127.0.0.1:${port}/index.html`)
+  console.log(`http://127.0.0.1:${port}`)
 })

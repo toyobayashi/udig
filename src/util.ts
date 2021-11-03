@@ -7,9 +7,23 @@ export interface Point {
 
 export function getCanvasPoint (e: MouseEvent | TouchEvent, canvasElement: HTMLCanvasElement): Point {
   const rect = canvasElement.getBoundingClientRect()
-  return {
-    x: ((e as MouseEvent).pageX ?? (e as TouchEvent).changedTouches[0].pageX - rect.left) * (canvasElement.width / rect.width),
-    y: ((e as MouseEvent).pageY ?? (e as TouchEvent).changedTouches[0].pageY - rect.top) * (canvasElement.height / rect.height)
+  if (IS_MOBILE) {
+    if (e.type === 'touchstart' || e.type === 'touchmove') {
+      return {
+        x: ((e as TouchEvent).targetTouches[0].pageX - rect.left) * (canvasElement.width / rect.width),
+        y: ((e as TouchEvent).targetTouches[0].pageY - rect.top) * (canvasElement.height / rect.height)
+      }
+    } else {
+      return {
+        x: ((e as TouchEvent).changedTouches[0].pageX - rect.left) * (canvasElement.width / rect.width),
+        y: ((e as TouchEvent).changedTouches[0].pageY - rect.top) * (canvasElement.height / rect.height)
+      }
+    }
+  } else {
+    return {
+      x: ((e as MouseEvent).pageX - rect.left) * (canvasElement.width / rect.width),
+      y: ((e as MouseEvent).pageY - rect.top) * (canvasElement.height / rect.height)
+    }
   }
 }
 
@@ -25,3 +39,5 @@ export function fileOrBlobToDataURL (obj: Blob): Promise<string> {
     fr.readAsDataURL(obj)
   })
 }
+
+export const IS_MOBILE = 'ontouchstart' in window

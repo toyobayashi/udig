@@ -1,6 +1,6 @@
 import './canvas.scss'
 import * as React from 'react'
-import { getCanvasPoint, Point } from './util'
+import { getCanvasPoint, IS_MOBILE, Point } from './util'
 
 export interface CanvasProps {
   width: number
@@ -9,16 +9,19 @@ export interface CanvasProps {
   fillStyle?: string
   lineWidth?: number
   domRef?: ((instance: HTMLCanvasElement | null) => void) | React.MutableRefObject<HTMLCanvasElement | null>
-  onMouseMove?: (this: HTMLCanvasElement, e: React.MouseEvent<HTMLCanvasElement>, x: number, y: number) => void
-  onMouseDown?: (this: HTMLCanvasElement, e: React.MouseEvent<HTMLCanvasElement>, x: number, y: number) => void
-  onMouseUp?: (this: HTMLCanvasElement, e: React.MouseEvent<HTMLCanvasElement>, x: number, y: number) => void
+  onMove?: (this: HTMLCanvasElement, e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, x: number, y: number) => void
+  onDown?: (this: HTMLCanvasElement, e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, x: number, y: number) => void
+  onUp?: (this: HTMLCanvasElement, e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, x: number, y: number) => void
 }
 
-class Canvas extends React.Component<CanvasProps> {
+class Canvas extends React.PureComponent<CanvasProps> {
   private _ctx: CanvasRenderingContext2D | null = null
   private _canvas: HTMLCanvasElement | null = null
   private _down: boolean = false
   private _lastPoint: Point | null = null
+
+  private static readonly DEFAULT_FILL_STYLE = '#000'
+  private static readonly DEFAULT_LINE_WIDTH = 8
 
   public constructor (props: CanvasProps) {
     super(props)
@@ -29,48 +32,53 @@ class Canvas extends React.Component<CanvasProps> {
     this.onRef = this.onRef.bind(this)
   }
 
-  public componentDidUpdate (): void {
-    this.updateContextSettings()
+  private _getProp<K extends keyof CanvasProps> (key: K, defaultValue: NonNullable<CanvasProps[K]>): NonNullable<CanvasProps[K]> {
+    return this.props[key] ?? defaultValue
   }
 
-  public updateContextSettings (): void {
+  public componentDidUpdate (prevProps: Readonly<CanvasProps>, _prevState: Readonly<{}>): void {
     if (this._ctx) {
-      this._ctx.fillStyle = this.props.fillStyle ?? '#000'
-      this._ctx.lineWidth = this.props.lineWidth ?? 8
+      if (!Object.is(prevProps.fillStyle, this.props.fillStyle)) {
+        this._ctx.fillStyle = this._getProp('fillStyle', Canvas.DEFAULT_FILL_STYLE)
+      }
+      if (!Object.is(prevProps.lineWidth, this.props.lineWidth)) {
+        this._ctx.lineWidth = this._getProp('lineWidth', Canvas.DEFAULT_LINE_WIDTH)
+      }
     }
   }
 
   public componentDidMount (): void {
-    if ('ontouchstart' in window) {
-      this._canvas!.addEventListener('touchmove', this.onMouseMove, { passive: false })
+    if (IS_MOBILE) {
+      this._canvas!.addEventListener('touchmove', this.onMouseMove as any, { passive: false })
     }
   }
 
   public componentWillUnmount (): void {
-    if ('ontouchstart' in window) {
-      this._canvas!.removeEventListener('touchmove', this.onMouseMove)
+    if (IS_MOBILE) {
+      this._canvas!.removeEventListener('touchmove', this.onMouseMove as any)
     }
   }
 
   public render (): React.ReactNode {
     return (
-      <canvas
-        className='canvas'
-        width={this.props.width.toString()}
-        height={this.props.height.toString()}
-        ref={this.onRef}
-        {...('ontouchstart' in window
-          ? {
-              onTouchStart: this.onMouseDown,
-              onTouchEnd: this.onMouseUp/* ,
-              onTouchMove: this.onMouseMove */
-            }
-          : {
-              onMouseDown: this.onMouseDown,
-              onMouseUp: this.onMouseUp,
-              onMouseMove: this.onMouseMove
-            })}
-      ></canvas>
+      <div className='canvas'>
+        <canvas
+          width={this.props.width.toString()}
+          height={this.props.height.toString()}
+          ref={this.onRef}
+          {...(IS_MOBILE
+            ? {
+                onTouchStart: this.onMouseDown,
+                onTouchEnd: this.onMouseUp/* ,
+                onTouchMove: this.onMouseMove */
+              }
+            : {
+                onMouseDown: this.onMouseDown,
+                onMouseUp: this.onMouseUp,
+                onMouseMove: this.onMouseMove
+              })}
+        ></canvas>
+      </div>
     )
   }
 
@@ -78,44 +86,45 @@ class Canvas extends React.Component<CanvasProps> {
     if (instance) {
       this._canvas = instance
       this._ctx = instance.getContext('2d')!
-      this.updateContextSettings()
+      this._ctx.fillStyle = this._getProp('fillStyle', Canvas.DEFAULT_FILL_STYLE)
+      this._ctx.lineWidth = this._getProp('lineWidth', Canvas.DEFAULT_LINE_WIDTH)
     }
     if (typeof this.props.domRef === 'function') {
       this.props.domRef(instance)
-    } else {
-      this.props.domRef && (this.props.domRef.current = instance)
+    } else if (this.props.domRef) {
+      this.props.domRef.current = instance
     }
   }
 
-  public onMouseDown (e: any): void {
+  public onMouseDown (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>): void {
     e.stopPropagation()
     this._down = true
     const point = getCanvasPoint(e, this._canvas!)
     this.fill(point)
-    if (typeof this.props.onMouseDown === 'function') {
-      this.props.onMouseDown.call(this._canvas!, e, point.x, point.y)
+    if (typeof this.props.onDown === 'function') {
+      this.props.onDown.call(this._canvas!, e, point.x, point.y)
     }
   }
 
-  public onMouseUp (e: any): void {
+  public onMouseUp (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>): void {
     e.stopPropagation()
     this._down = false
     this._lastPoint = null
-    if (typeof this.props.onMouseUp === 'function') {
+    if (typeof this.props.onUp === 'function') {
       const point = getCanvasPoint(e, this._canvas!)
-      this.props.onMouseUp.call(this._canvas!, e, point.x, point.y)
+      this.props.onUp.call(this._canvas!, e, point.x, point.y)
     }
   }
 
-  public onMouseMove (e: any): void {
+  public onMouseMove (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>): void {
     e.stopPropagation()
     e.preventDefault()
     const point = getCanvasPoint(e, this._canvas!)
     if (this._down) {
       this.fill(point)
     }
-    if (typeof this.props.onMouseMove === 'function') {
-      this.props.onMouseMove.call(this._canvas!, e, point.x, point.y)
+    if (typeof this.props.onMove === 'function') {
+      this.props.onMove.call(this._canvas!, e, point.x, point.y)
     }
   }
 

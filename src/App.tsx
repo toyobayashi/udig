@@ -63,7 +63,7 @@ const App: React.FC<{}> = () => {
 
   return (
     <>
-      <Canvas width={300} height={400} lineWidth={lineWidth} domRef={canvasRef} disabled={disabled} onMouseUp={sendCanvas} />
+      <Canvas width={300} height={400} lineWidth={lineWidth} domRef={canvasRef} disabled={disabled} onUp={sendCanvas} />
       <button onClick={callback}>+++</button>
     </>
   )
