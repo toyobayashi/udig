@@ -1,10 +1,11 @@
 import { game, GameStatus } from '@/store/game'
+import { observer } from 'mobx-react'
 import * as React from 'react'
 
 import Canvas from './Canvas'
 import PlayerList from './PlayerList'
 
-const Game: React.FC<{}> = () => {
+const Game: React.FC<{}> = observer(() => {
   const onClickReady = React.useCallback(() => {
     game.doReady().catch(err => {
       console.error(err)
@@ -17,6 +18,6 @@ const Game: React.FC<{}> = () => {
       <PlayerList />
     </>
   )
-}
+})
 
 export default Game
