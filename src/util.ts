@@ -1,4 +1,5 @@
 import type { MouseEvent, TouchEvent } from 'react'
+import { load } from '@fingerprintjs/fingerprintjs'
 
 export interface Point {
   x: number
@@ -41,3 +42,11 @@ export function fileOrBlobToDataURL (obj: Blob): Promise<string> {
 }
 
 export const IS_MOBILE = 'ontouchstart' in window
+
+const fpPromise = load()
+
+export function getBrowserFingerprint (): Promise<string> {
+  return fpPromise
+    .then(fp => fp.get())
+    .then(result => result.visitorId)
+}

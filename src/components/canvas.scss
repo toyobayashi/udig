@@ -1,0 +1,9 @@
+.canvas {
+  text-align: center;
+  margin: 8px 0;
+  .canvas-wrap {
+    display: inline-block;
+    box-sizing: border-box;
+    border: 1px solid #000;
+  }
+}
