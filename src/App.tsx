@@ -2,18 +2,19 @@ import * as React from 'react'
 import { observer } from 'mobx-react'
 
 import Game from './components/Game'
-import { game } from './store/game'
+// import { game } from './store/game'
 
 const App: React.FC<{}> = observer(() => {
-  React.useEffect(() => {
-    game.start().catch(err => {
-      console.error(err)
-    })
-  }, [])
+  // React.useEffect(() => {
+  //   game.start().catch(err => {
+  //     console.error(err)
+  //   })
+  // }, [])
 
   return (
     <>
-      {game.joined ? <Game /> : <div>Loading...</div>}
+      {/* {game.joined ? <Game /> : <div>Loading...</div>} */}
+      <Game />
     </>
   )
 })

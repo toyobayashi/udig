@@ -12,12 +12,41 @@ export interface CanvasProps {
   onUp?: (this: HTMLCanvasElement, e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, x: number, y: number) => void
 }
 
+const Toolbar: React.FC<{}> = observer(() => {
+  console.log('render')
+  const setErasor = React.useCallback(() => {
+    game.setErasor()
+  }, [])
+
+  const setLineWidth2 = React.useCallback(() => {
+    game.setLineWidth(2)
+  }, [])
+
+  const setLineWidth4 = React.useCallback(() => {
+    game.setLineWidth(4)
+  }, [])
+
+  const setLineWidth8 = React.useCallback(() => {
+    game.setLineWidth(8)
+  }, [])
+
+  return <div className='toolbar'>
+    <div className='pen-group'>
+      <div className={'pen-item' + (!game.erasor ? (game.lineWidth === 2 ? ' active' : '') : '')} onClick={setLineWidth2}>细画笔</div>
+      <div className={'pen-item' + (!game.erasor ? (game.lineWidth === 4 ? ' active' : '') : '')} onClick={setLineWidth4}>普通画笔</div>
+      <div className={'pen-item' + (!game.erasor ? (game.lineWidth === 8 ? ' active' : '') : '')} onClick={setLineWidth8}>粗画笔</div>
+      <div className='pen-item'>颜色</div>
+      <div className={'pen-item' + (game.erasor ? ' active' : '')} onClick={setErasor}>橡皮擦</div>
+    </div>
+  </div>
+})
+
 class Canvas extends React.PureComponent<CanvasProps> {
   private _down: boolean = false
   private _lastPoint: Point | null = null
 
   private static readonly DEFAULT_FILL_STYLE = '#000'
-  private static readonly DEFAULT_LINE_WIDTH = 8
+  private static readonly DEFAULT_LINE_WIDTH = 2
 
   public constructor (props: CanvasProps) {
     super(props)
@@ -61,6 +90,7 @@ class Canvas extends React.PureComponent<CanvasProps> {
                 })}
           ></canvas>
         </div>
+        <Toolbar />
       </div>
     )
   }
@@ -93,9 +123,10 @@ class Canvas extends React.PureComponent<CanvasProps> {
     e.stopPropagation()
     this._down = false
     this._lastPoint = null
-    game.sendImageData().catch(err => {
-      console.error(err)
-    })
+    // test
+    // game.sendImageData().catch(err => {
+    //   console.error(err)
+    // })
     if (typeof this.props.onUp === 'function') {
       const point = getCanvasPoint(e, game.canvasElement!)
       this.props.onUp.call(game.canvasElement!, e, point.x, point.y)
@@ -118,14 +149,28 @@ class Canvas extends React.PureComponent<CanvasProps> {
     if (!game.canDraw) return
     const ctx = game.canvasContext!
     const lineWidth = ctx.lineWidth
-    ctx.beginPath()
-    ctx.arc(point.x, point.y, lineWidth / 2, 0, 2 * Math.PI, true)
-    ctx.fill()
-    if (this._lastPoint) {
+    if (game.erasor) {
+      ctx.save()
       ctx.beginPath()
-      ctx.moveTo(this._lastPoint.x, this._lastPoint.y)
-      ctx.lineTo(point.x, point.y)
-      ctx.stroke()
+      ctx.arc(point.x, point.y, lineWidth / 2, 0, 2 * Math.PI, true)
+      ctx.clip()
+      ctx.clearRect(0, 0, 300, 300)
+      if (this._lastPoint) {
+        // TODO
+      }
+      ctx.restore()
+    } else {
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(point.x, point.y, lineWidth / 2, 0, 2 * Math.PI, true)
+      ctx.fill()
+      if (this._lastPoint) {
+        ctx.beginPath()
+        ctx.moveTo(this._lastPoint.x, this._lastPoint.y)
+        ctx.lineTo(point.x, point.y)
+        ctx.stroke()
+      }
+      ctx.restore()
     }
     this._lastPoint = point
   }

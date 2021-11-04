@@ -1,9 +1,35 @@
 .canvas {
-  text-align: center;
   margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   .canvas-wrap {
-    display: inline-block;
     box-sizing: border-box;
     border: 1px solid #000;
+  }
+
+  .toolbar {
+    align-self: flex-start;
+    display: flex;
+    justify-content: space-between;
+    .pen-group {
+      display: flex;
+      .pen-item {
+        border-radius: 2px;
+        border-width: 1px;
+        border-style: solid;
+        border-color: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 16px;
+        padding: 0 2px;
+        font-size: 12px;
+        &.active {
+          border-color: red;
+          color: red;
+        }
+      }
+    }
   }
 }

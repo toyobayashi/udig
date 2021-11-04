@@ -53,8 +53,9 @@ class Game {
   canvasElement: HTMLCanvasElement | null = null
   canvasContext: CanvasRenderingContext2D | null = null
 
-  fillStyle: string = ''
-  lineWidth: number = 8
+  fillStyle: string = '#000'
+  lineWidth: number = 2
+  erasor: boolean = false
 
   ws: WebSocket | null = null
 
@@ -71,8 +72,6 @@ class Game {
       myId: false,
       canvasElement: false,
       canvasContext: false,
-      fillStyle: false,
-      lineWidth: false,
       ws: false,
       doReady: false
     })
@@ -87,7 +86,8 @@ class Game {
   }
 
   get canDraw (): boolean {
-    return (this.status === GameStatus.PENDING) && (this.me ? this.me.painter : false)
+    return true
+    // return (this.status === GameStatus.PENDING) && (this.me ? this.me.painter : false)
   }
 
   get preparing (): boolean {
@@ -102,6 +102,21 @@ class Game {
     return this.status === GameStatus.PENDING
   }
 
+  setErasor (): void {
+    this.erasor = true
+  }
+
+  setFillStyle (style: string): void {
+    this.fillStyle = style
+    if (this.canvasContext) this.canvasContext.fillStyle = style
+  }
+
+  setLineWidth (lineWidth: number): void {
+    this.erasor = false
+    this.lineWidth = lineWidth
+    if (this.canvasContext) this.canvasContext.lineWidth = lineWidth
+  }
+
   sync (msgobj: IGameSyncMessage): void {
     Object.keys(msgobj).forEach(k => {
       (this as any)[k] = (msgobj as any)[k]
@@ -111,7 +126,7 @@ class Game {
   async doReady (): Promise<void> {
     if (this.status === GameStatus.PRERARING) {
       return new Promise<void>((resolve) => {
-        this.ws!.send(JSON.stringify({
+        this.ws?.send(JSON.stringify({
           channel: 'ready'
         }))
         resolve()
