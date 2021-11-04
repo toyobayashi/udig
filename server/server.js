@@ -7,7 +7,7 @@ const express = require('express')
 const cors = require('cors')
 
 const { routes } = require('./routes.js')
-const { Player, Game } = require('./game')
+const { Player, Game, GameStatus } = require('./game')
 const { WebSocketMessage } = require('./util.js')
 
 const app = express()
@@ -50,6 +50,24 @@ server.on('upgrade', function upgrade (request, socket, head) {
   })
 })
 
+function syncGame () {
+  wss.clients.forEach(ws => {
+    const str = JSON.stringify(new WebSocketMessage('game-sync', {
+      ...ws.game.toJSON(),
+      myId: ws.player.id
+    }))
+    ws.send(str)
+  })
+}
+
+function syncImage (painterWs, data) {
+  wss.clients.forEach(ws => {
+    if (painterWs !== ws) {
+      ws.send(data)
+    }
+  })
+}
+
 wss.on('connection', function connection (ws, request) {
   const search = parseUrl(request).search
   const searchParams = new url.URLSearchParams(search)
@@ -62,57 +80,49 @@ wss.on('connection', function connection (ws, request) {
   let player = game.players.filter(p => p.id === id)[0]
   if (player == null) {
     player = new Player(id, id, ws)
-    for (let i = 0; ;i++) {
+    for (let i = 0; true; i++) {
       if (game.players[i] == null) {
         game.players[i] = player
         break
       }
     }
+  } else {
+    if (game.imageData) {
+      ws.send(game.imageData)
+    }
   }
   ws.player = player
   ws.game = game
 
-  ws.send(JSON.stringify(new WebSocketMessage('game-sync', {
-    ...ws.game.toJSON(),
-    myId: ws.player.id
-  })))
+  ws.on('message', (data) => {
+    if (String.fromCharCode(data[0]) !== '{') {
+      game.imageData = data
+      syncImage(ws, data)
+    } else {
+      const msgobj = JSON.parse(data.toString())
+      if (msgobj.channel === 'ready') {
+        ws.player.ready = true
+        if (ws.game.playerCount() > 1 && ws.game.allReady() && ws.game.preparing()) {
+          ws.game.status = GameStatus.PENDING
+          ws.game.target = 'test'
+          ws.game.endTime = Date.now() + 90000
+          for (let i = 0; true; i++) {
+            if (ws.game.players[i] != null) {
+              ws.game.players[i].painter = true
+              break
+            }
+          }
+        }
+        syncGame()
+        return
+      }
+      if (msgobj.channel === 'sendmsg') {
+        // TODO
+      }
+    }
+  })
 
-  // if (!main) {
-  //   main = ws
-
-  //   ws.send('main')
-
-  //   ws.on('message', (data) => {
-  //     console.log(data.length)
-  //     currentCanvasData = data
-  //     sockets.forEach(socket => {
-  //       socket.send(data)
-  //     })
-  //   })
-
-  //   ws.once('close', () => {
-  //     console.log('close 1')
-  //     main = null
-  //   })
-  // } else {
-  //   if (!sockets.includes(ws)) {
-  //     sockets.push(ws)
-
-  //     ws.send('member')
-
-  //     if (currentCanvasData) {
-  //       ws.send(currentCanvasData)
-  //     }
-
-  //     ws.once('close', () => {
-  //       console.log('close 2')
-  //       const index = sockets.indexOf(ws)
-  //       if (index !== -1) {
-  //         sockets.splice(index, 1)
-  //       }
-  //     })
-  //   }
-  // }
+  syncGame()
 })
 
 const port = 8099

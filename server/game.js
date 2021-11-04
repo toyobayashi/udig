@@ -47,6 +47,27 @@ class Game {
     /** @type {Player[]} */
     this.players = []
     this.imageData = null
+    this.target = null
+  }
+
+  preparing () {
+    return this.status === GameStatus.PRERARING
+  }
+
+  selecting () {
+    return this.status === GameStatus.SELECTING
+  }
+
+  pending () {
+    return this.status === GameStatus.PENDING
+  }
+
+  allReady () {
+    return this.players.filter(p => !p.ready).length === 0
+  }
+
+  playerCount () {
+    return this.players.filter(p => p != null).length
   }
 
   toJSON () {
@@ -61,3 +82,4 @@ class Game {
 
 exports.Game = Game
 exports.Player = Player
+exports.GameStatus = GameStatus

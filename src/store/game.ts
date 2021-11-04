@@ -73,7 +73,8 @@ class Game {
       canvasContext: false,
       fillStyle: false,
       lineWidth: false,
-      ws: false
+      ws: false,
+      doReady: false
     })
   }
 
@@ -86,13 +87,37 @@ class Game {
   }
 
   get canDraw (): boolean {
-    return this.me ? this.me.painter : false
+    return (this.status === GameStatus.PENDING) && (this.me ? this.me.painter : false)
+  }
+
+  get preparing (): boolean {
+    return this.status === GameStatus.PRERARING
+  }
+
+  get selecting (): boolean {
+    return this.status === GameStatus.SELECTING
+  }
+
+  get pending (): boolean {
+    return this.status === GameStatus.PENDING
   }
 
   sync (msgobj: IGameSyncMessage): void {
     Object.keys(msgobj).forEach(k => {
       (this as any)[k] = (msgobj as any)[k]
     })
+  }
+
+  async doReady (): Promise<void> {
+    if (this.status === GameStatus.PRERARING) {
+      return new Promise<void>((resolve) => {
+        this.ws!.send(JSON.stringify({
+          channel: 'ready'
+        }))
+        resolve()
+      })
+    }
+    return Promise.resolve()
   }
 
   async sendImageData (): Promise<void> {
@@ -113,7 +138,7 @@ class Game {
     this.myId = await getBrowserFingerprint()
 
     return new Promise<void>((resolve, reject) => {
-      this.ws = new WebSocket(`ws://localhost:8099/?id=${this.myId}&roomId=0`)
+      this.ws = new WebSocket(`ws://${location.hostname}:8099/?id=${this.myId}&roomId=0`)
       this.ws.addEventListener('open', () => {
         console.log('open')
         runInAction(() => { this.joined = true })

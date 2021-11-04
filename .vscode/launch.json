@@ -2,6 +2,12 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Start Server",
+      "program": "${workspaceFolder}/server/server.js",
+      "request": "launch",
+      "type": "node"
+    },
+    {
       "type": "chrome",
       "request": "attach",
       "name": "Attach to Chrome",
