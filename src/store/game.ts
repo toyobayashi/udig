@@ -53,9 +53,9 @@ class Game {
   canvasElement: HTMLCanvasElement | null = null
   canvasContext: CanvasRenderingContext2D | null = null
 
-  fillStyle: string = '#000'
+  color: string = 'black'
   lineWidth: number = 2
-  erasor: boolean = false
+  globalCompositeOperation: string = 'source-over'
 
   ws: WebSocket | null = null
 
@@ -102,19 +102,33 @@ class Game {
     return this.status === GameStatus.PENDING
   }
 
-  setErasor (): void {
-    this.erasor = true
+  setEraser (value: boolean): void {
+    if (value) {
+      this.globalCompositeOperation = 'destination-out'
+      if (this.canvasContext) {
+        this.canvasContext.globalCompositeOperation = 'destination-out'
+        this.canvasContext.lineWidth = 20
+      }
+    } else {
+      this.globalCompositeOperation = 'source-over'
+      if (this.canvasContext) {
+        this.canvasContext.globalCompositeOperation = 'source-over'
+        this.canvasContext.lineWidth = this.lineWidth
+      }
+    }
   }
 
-  setFillStyle (style: string): void {
-    this.fillStyle = style
-    if (this.canvasContext) this.canvasContext.fillStyle = style
+  setColor (style: string): void {
+    this.color = style
+    if (this.canvasContext) {
+      this.canvasContext.fillStyle = style
+      this.canvasContext.strokeStyle = style
+    }
   }
 
   setLineWidth (lineWidth: number): void {
-    this.erasor = false
     this.lineWidth = lineWidth
-    if (this.canvasContext) this.canvasContext.lineWidth = lineWidth
+    if (this.canvasContext && this.globalCompositeOperation !== 'destination-out') this.canvasContext.lineWidth = lineWidth
   }
 
   sync (msgobj: IGameSyncMessage): void {
@@ -179,7 +193,7 @@ class Game {
             image.src = dataurl
             image.onload = () => {
               if (this.canvasContext) {
-                this.canvasContext.clearRect(0, 0, 300, 400)
+                this.canvasContext.clearRect(0, 0, this.canvasElement!.width, this.canvasElement!.height)
                 this.canvasContext.drawImage(image, 0, 0)
               }
             }

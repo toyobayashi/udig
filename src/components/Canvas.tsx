@@ -12,31 +12,82 @@ export interface CanvasProps {
   onUp?: (this: HTMLCanvasElement, e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, x: number, y: number) => void
 }
 
+const useCallback = React.useCallback
+
 const Toolbar: React.FC<{}> = observer(() => {
   console.log('render')
-  const setErasor = React.useCallback(() => {
-    game.setErasor()
-  }, [])
 
-  const setLineWidth2 = React.useCallback(() => {
+  const setLineWidth2 = useCallback(() => {
     game.setLineWidth(2)
   }, [])
 
-  const setLineWidth4 = React.useCallback(() => {
+  const setLineWidth4 = useCallback(() => {
     game.setLineWidth(4)
   }, [])
 
-  const setLineWidth8 = React.useCallback(() => {
-    game.setLineWidth(8)
+  const setLineWidth8 = useCallback(() => {
+    game.setLineWidth(6)
+  }, [])
+
+  const setPen = useCallback(() => {
+    game.setEraser(false)
+  }, [])
+
+  const setEraser = useCallback(() => {
+    game.setEraser(true)
+  }, [])
+
+  const setBlack = useCallback(() => {
+    game.setColor('black')
+  }, [])
+
+  const setRed = useCallback(() => {
+    game.setColor('red')
+  }, [])
+
+  const setPurple = useCallback(() => {
+    game.setColor('purple')
+  }, [])
+
+  const setBlue = useCallback(() => {
+    game.setColor('blue')
+  }, [])
+
+  const setOrange = useCallback(() => {
+    game.setColor('orange')
+  }, [])
+
+  const setGreen = useCallback(() => {
+    game.setColor('green')
+  }, [])
+
+  const setGray = useCallback(() => {
+    game.setColor('gray')
   }, [])
 
   return <div className='toolbar'>
     <div className='pen-group'>
-      <div className={'pen-item' + (!game.erasor ? (game.lineWidth === 2 ? ' active' : '') : '')} onClick={setLineWidth2}>细画笔</div>
-      <div className={'pen-item' + (!game.erasor ? (game.lineWidth === 4 ? ' active' : '') : '')} onClick={setLineWidth4}>普通画笔</div>
-      <div className={'pen-item' + (!game.erasor ? (game.lineWidth === 8 ? ' active' : '') : '')} onClick={setLineWidth8}>粗画笔</div>
-      <div className='pen-item'>颜色</div>
-      <div className={'pen-item' + (game.erasor ? ' active' : '')} onClick={setErasor}>橡皮擦</div>
+      <div className='line'>
+        <div>粗细：</div>
+        <div className={'pen-item' + (game.lineWidth === 2 ? ' active' : '')} onClick={setLineWidth2}>细</div>
+        <div className={'pen-item' + (game.lineWidth === 4 ? ' active' : '')} onClick={setLineWidth4}>普通</div>
+        <div className={'pen-item' + (game.lineWidth === 6 ? ' active' : '')} onClick={setLineWidth8}>粗</div>
+      </div>
+      <div className='line'>
+        <div>画笔：</div>
+        <div className={'pen-item' + (game.globalCompositeOperation === 'source-over' ? ' active' : '')} onClick={setPen}>画笔</div>
+        <div className={'pen-item' + (game.globalCompositeOperation === 'destination-out' ? ' active' : '')} onClick={setEraser}>橡皮擦</div>
+      </div>
+      <div className='line'>
+        <div>颜色：</div>
+        <div className={'pen-item' + (game.color === 'black' ? ' active' : '')} onClick={setBlack}>黑</div>
+        <div className={'pen-item' + (game.color === 'red' ? ' active' : '')} onClick={setRed}>红</div>
+        <div className={'pen-item' + (game.color === 'blue' ? ' active' : '')} onClick={setBlue}>蓝</div>
+        <div className={'pen-item' + (game.color === 'purple' ? ' active' : '')} onClick={setPurple}>紫</div>
+        <div className={'pen-item' + (game.color === 'orange' ? ' active' : '')} onClick={setOrange}>橙</div>
+        <div className={'pen-item' + (game.color === 'green' ? ' active' : '')} onClick={setGreen}>绿</div>
+        <div className={'pen-item' + (game.color === 'gray' ? ' active' : '')} onClick={setGray}>灰</div>
+      </div>
     </div>
   </div>
 })
@@ -44,9 +95,6 @@ const Toolbar: React.FC<{}> = observer(() => {
 class Canvas extends React.PureComponent<CanvasProps> {
   private _down: boolean = false
   private _lastPoint: Point | null = null
-
-  private static readonly DEFAULT_FILL_STYLE = '#000'
-  private static readonly DEFAULT_LINE_WIDTH = 2
 
   public constructor (props: CanvasProps) {
     super(props)
@@ -99,8 +147,9 @@ class Canvas extends React.PureComponent<CanvasProps> {
     if (instance) {
       game.canvasElement = instance
       game.canvasContext = instance.getContext('2d')!
-      game.canvasContext.fillStyle = Canvas.DEFAULT_FILL_STYLE
-      game.canvasContext.lineWidth = Canvas.DEFAULT_LINE_WIDTH
+      game.canvasContext.fillStyle = game.color
+      game.canvasContext.strokeStyle = game.color
+      game.canvasContext.lineWidth = game.lineWidth
     }
     if (typeof this.props.domRef === 'function') {
       this.props.domRef(instance)
@@ -149,29 +198,17 @@ class Canvas extends React.PureComponent<CanvasProps> {
     if (!game.canDraw) return
     const ctx = game.canvasContext!
     const lineWidth = ctx.lineWidth
-    if (game.erasor) {
-      ctx.save()
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(point.x, point.y, lineWidth / 2, 0, 2 * Math.PI, true)
+    ctx.fill()
+    if (this._lastPoint) {
       ctx.beginPath()
-      ctx.arc(point.x, point.y, lineWidth / 2, 0, 2 * Math.PI, true)
-      ctx.clip()
-      ctx.clearRect(0, 0, 300, 300)
-      if (this._lastPoint) {
-        // TODO
-      }
-      ctx.restore()
-    } else {
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(point.x, point.y, lineWidth / 2, 0, 2 * Math.PI, true)
-      ctx.fill()
-      if (this._lastPoint) {
-        ctx.beginPath()
-        ctx.moveTo(this._lastPoint.x, this._lastPoint.y)
-        ctx.lineTo(point.x, point.y)
-        ctx.stroke()
-      }
-      ctx.restore()
+      ctx.moveTo(this._lastPoint.x, this._lastPoint.y)
+      ctx.lineTo(point.x, point.y)
+      ctx.stroke()
     }
+    ctx.restore()
     this._lastPoint = point
   }
 }
